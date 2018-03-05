@@ -126,7 +126,7 @@ main(void)
         {
             if((back1 == 0) && (back2 == 0) && (fwd1 == 0) && (fwd2 == 0))
             {
-                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_4, 300);
+                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_4, 280);
                 PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, true);     //enable unlock PWM
                 GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_2);    //Disable locking interrupts SW3 and SW4
                 GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);
@@ -139,10 +139,7 @@ main(void)
             else if(back2 == 1)
             {
                 PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, false);    //Shut off PWM1
-                for(i = 0; i < 250000000; i++)
-                {
-                    //5s delay
-                }
+               // SysCtlDelay(3*SysCtlClockGet()/3);                  //Delay 3s, need to do only once <-----------------------------------------------------
                 PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 280);        //Set PWM2 to full speed
                 PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, true);     //Turn on PWM2 (lock)
                 GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_0);
@@ -198,6 +195,8 @@ void PortEIntHandler(void)
         back1 = 0;
         fwd1 = 0;
         fwd2 = 0;
+        PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, false);    //Shut off PWM1
+        SysCtlDelay(SysCtlClockGet()/3);                  //delay 3s
     }
     else if( (status & GPIO_INT_PIN_2) == GPIO_INT_PIN_2)
     {
