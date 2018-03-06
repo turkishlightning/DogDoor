@@ -188,10 +188,8 @@ main(void)
         }
         else
         {
-            fwd1 = 0;
-            fwd2 = 0;
-            back1 = 0;
-            back2 = 0;
+            sensors = 'n';
+            rfid = 'n';
             UARTprintf("Are all sensors within range?(y/n)\n\r");
             sensors = readChar();
             if(sensors == 'y')
@@ -201,6 +199,10 @@ main(void)
                 if(rfid == 'y')
                 {
                     drive = 1;
+                    fwd1 = 0;
+                    fwd2 = 0;
+                    back1 = 0;
+                    back2 = 0;
                 }
                 else
                 {
