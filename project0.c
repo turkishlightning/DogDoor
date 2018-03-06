@@ -180,10 +180,6 @@ main(void)
             {
                 PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, false);    //Stop motor
                 drive = 0;
-                /*GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_0);     //Enable SW1 and SW2 interrupts
-                GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_1);
-                GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_2);    //Disable locking interrupts SW3 and SW4
-                GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);*/
             }
         }
         else
@@ -246,6 +242,15 @@ void PortEIntHandler(void)
         fwd1 = 0;
         fwd2 = 0;
         PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, false);    //Shut off PWM1
+        while(rfid != 'n')
+        {
+            UARTprintf("Is the RFID still in range?(y/n)\n");
+            rfid = readChar();
+            if(rfid != 'n')
+            {
+                UARTprintf("The dog must move away from the door! Try again\n");
+            }
+        }
         SysCtlDelay(SysCtlClockGet()/3);                  //delay 3s
     }
     else if( (status & GPIO_INT_PIN_2) == GPIO_INT_PIN_2)
