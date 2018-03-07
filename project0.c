@@ -29,7 +29,7 @@
 //*****************************************************************************
 // Variable Declarations
 
-int drive = 0;      //flag to show that sensors and RFID are valid
+//int drive = 0;      //flag to show that sensors and RFID are valid
 int fwd1 = 0;       //flag to show that lock has passed first forward switch (slow down)
 int fwd2 = 0;       //flag to show that lock has past second forward switch (kill-switch)
 int back1 = 0;      //flag to show that lock has passed first backward switch (slow down)
@@ -37,6 +37,8 @@ int back2 = 0;      //flag to show that lock has passed second backward switch (
 int i = 0;          //delay loop counter
 char sensors = 'n'; // y or n indicating sensors in range
 char rfid = 'n';    // y or n indicating sensors in range
+int unlock = 0;
+int lock = 0;
 
 
 
@@ -142,17 +144,12 @@ main(void)
 
     while(1)
     {
-        if(drive == 1)
+        if(unlock == 1)
         {
-            if((back1 == 0) && (back2 == 0) && (fwd1 == 0) && (fwd2 == 0))
+            if((back1 == 0) && (back2 == 0))
             {
                 PWMPulseWidthSet(PWM1_BASE, PWM_OUT_4, 280);
                 PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, true);     //enable unlock PWM
-                GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_0);     //Enable SW1 and SW2 interrupts
-                GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_1);
-                GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_2);    //Disable locking interrupts SW3 and SW4
-                GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);
-              //  UARTprintf("Unlocking...\n");
             }
             else if(back1 == 1)
             {
@@ -162,14 +159,29 @@ main(void)
             else if(back2 == 1)
             {
                 PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, false);    //Shut off PWM1
+                while(rfid != 'n')
+                {
+                    UARTprintf("Is the RFID still in range?(y/n)\n");
+                    rfid = readChar();
+                    if(rfid != 'n')
+                    {
+                        UARTprintf("The dog must move away from the door! Try again\n");
+                    }
+                }
+                UARTprintf("Locking...\n");
                 PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 280);        //Set PWM2 to full speed
                 PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, true);     //Turn on PWM2 (lock)
-                GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_0);
-                GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_1);    //Disable interrupts on SW1 and SW2
-                GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_2);     //Enable interrupts for SW3 and SW4
-                GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);
-              //  UARTprintf("Locking...\n");
-
+                unlock = 0;
+                lock = 1;
+                back2 = 0;
+            }
+        }
+        else if(lock == 1)
+        {
+            if((fwd1 == 0) && (fwd2 == 0))
+            {
+                PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, true);
+                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 280);        //Keep motor at full speed
             }
             else if(fwd1 == 1)
             {
@@ -178,12 +190,15 @@ main(void)
             }
             else if(fwd2 == 1)
             {
-                PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, false);    //Stop motor
-                drive = 0;
+                //PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, false);
+                lock = 0;
+                fwd2 = 0;
+
             }
         }
         else
         {
+            PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, false);
             sensors = 'n';
             rfid = 'n';
             UARTprintf("Are all sensors within range?(y/n)\n\r");
@@ -194,7 +209,7 @@ main(void)
                 rfid = readChar();
                 if(rfid == 'y')
                 {
-                    drive = 1;
+                    unlock = 1;
                     fwd1 = 0;
                     fwd2 = 0;
                     back1 = 0;
@@ -204,13 +219,11 @@ main(void)
                 else
                 {
                     UARTprintf("Invalid Input\n\r");
-                    drive = 0;
                 }
             }
             else
             {
                 UARTprintf("Invalid Input\n\r");
-                drive = 0;
             }
         }
     }
@@ -227,7 +240,7 @@ void PortEIntHandler(void)
     uint32_t    status = 0;                             //Status variable to determine which pin triggered interrupt
     status = GPIOIntStatus(GPIO_PORTE_BASE,true);       //More pins will be added for interrupts
     GPIOIntClear(GPIO_PORTE_BASE,status);
-    if( (status & GPIO_INT_PIN_0) == GPIO_INT_PIN_0)
+    if( ((status & GPIO_INT_PIN_0) == GPIO_INT_PIN_0) && unlock)
     {
         //Then there was a pin0 interrupt, reduce back speed
         back1 = 1;
@@ -235,27 +248,15 @@ void PortEIntHandler(void)
         fwd1 = 0;
         fwd2 = 0;
     }
-    else if( (status & GPIO_INT_PIN_1) == GPIO_INT_PIN_1)
+    else if( ((status & GPIO_INT_PIN_1) == GPIO_INT_PIN_1) && unlock)
     {
         //Then there was a pin1 interrupt, stop motor, delay, turn forward
         back2 = 1;
         back1 = 0;
         fwd1 = 0;
         fwd2 = 0;
-        PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, false);    //Shut off PWM1
-        while(rfid != 'n')
-        {
-            UARTprintf("Is the RFID still in range?(y/n)\n");
-            rfid = readChar();
-            if(rfid != 'n')
-            {
-                UARTprintf("The dog must move away from the door! Try again\n");
-            }
-        }
-        SysCtlDelay(SysCtlClockGet()/3);                  //delay 3s
-        UARTprintf("Locking...\n");
     }
-    else if( (status & GPIO_INT_PIN_2) == GPIO_INT_PIN_2)
+    else if( ((status & GPIO_INT_PIN_2) == GPIO_INT_PIN_2) && lock)
     {
         //Then there was a pin2 interrupt, reduce forward speed
         back2 = 0;
@@ -263,7 +264,7 @@ void PortEIntHandler(void)
         fwd1 = 1;
         fwd2 = 0;
     }
-    else if( (status & GPIO_INT_PIN_3) == GPIO_INT_PIN_3)
+    else if( ((status & GPIO_INT_PIN_3) == GPIO_INT_PIN_3) && lock)
     {
         //Then there was a pin3 interrupt, stop motor
         back2 = 0;
