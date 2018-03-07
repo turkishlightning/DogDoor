@@ -152,7 +152,7 @@ main(void)
                 GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_1);
                 GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_2);    //Disable locking interrupts SW3 and SW4
                 GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);
-                UARTprintf("Unlocking...\n");
+              //  UARTprintf("Unlocking...\n");
             }
             else if(back1 == 1)
             {
@@ -168,7 +168,7 @@ main(void)
                 GPIOIntDisable(GPIO_PORTE_BASE, GPIO_INT_PIN_1);    //Disable interrupts on SW1 and SW2
                 GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_2);     //Enable interrupts for SW3 and SW4
                 GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);
-                UARTprintf("Locking...\n");
+              //  UARTprintf("Locking...\n");
 
             }
             else if(fwd1 == 1)
@@ -199,6 +199,7 @@ main(void)
                     fwd2 = 0;
                     back1 = 0;
                     back2 = 0;
+                    UARTprintf("Unlocking...\n");
                 }
                 else
                 {
@@ -252,6 +253,7 @@ void PortEIntHandler(void)
             }
         }
         SysCtlDelay(SysCtlClockGet()/3);                  //delay 3s
+        UARTprintf("Locking...\n");
     }
     else if( (status & GPIO_INT_PIN_2) == GPIO_INT_PIN_2)
     {
