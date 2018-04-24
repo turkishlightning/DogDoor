@@ -25,6 +25,7 @@
 #include "driverlib/rom_map.h"
 #include "driverlib/uart.h"
 #include "uartstdio.h"
+#include "driverlib/ssi.h"
 
 //*****************************************************************************
 // Variable Declarations
@@ -75,9 +76,10 @@ main(void)
     //
     // Setup the system clock to run at 50 Mhz from PLL with crystal reference
     //
-    SysCtlClockSet(SYSCTL_SYSDIV_4|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|
-                    SYSCTL_OSC_MAIN);
+  //  SysCtlClockSet(SYSCTL_SYSDIV_4|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|
+         //           SYSCTL_OSC_MAIN);
 
+    SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_OSC_INT | SYSCTL_USE_PLL);
     //PWM Initializations
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
     while(!SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOF))
@@ -130,13 +132,13 @@ main(void)
     GPIOIntEnable(GPIO_PORTE_BASE, GPIO_INT_PIN_3);                                         //Enable interrupt
 
     //UART Initializations
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);                                            //Enable GPIO Port A
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);                                            //Enable UART Module 0
-    GPIOPinConfigure(GPIO_PA0_U0RX);                                                        //MUX UART to Port A pins 0 and 1
-    GPIOPinConfigure(GPIO_PA1_U0TX);
-    GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
-    UARTClockSourceSet(UART0_BASE, UART_CLOCK_SYSTEM);                                       //Set UART clock
-    UARTStdioConfig(0, 9600, SysCtlClockGet());
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);                                            //Enable GPIO Port A
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART1);                                            //Enable UART Module 0
+    GPIOPinConfigure(GPIO_PB0_U1RX);                                                        //MUX UART to Port A pins 0 and 1
+    GPIOPinConfigure(GPIO_PB1_U1TX);
+    GPIOPinTypeUART(GPIO_PORTB_BASE, GPIO_PIN_0 | GPIO_PIN_1);
+    UARTClockSourceSet(UART1_BASE, UART_CLOCK_SYSTEM);                                       //Set UART clock
+    UARTStdioConfig(1, 9600, SysCtlClockGet());
 
     UARTprintf("Welcome to the Dog Door Motor Control Prototype\n");
 
@@ -148,7 +150,7 @@ main(void)
         {
             if((back1 == 0) && (back2 == 0))
             {
-                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_4, 280);
+                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_4, 220);
                 PWMOutputState(PWM1_BASE, PWM_OUT_4_BIT, true);     //enable unlock PWM
             }
             else if(back1 == 1)
@@ -169,7 +171,7 @@ main(void)
                     }
                 }
                 UARTprintf("Locking...\n");
-                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 280);        //Set PWM2 to full speed
+                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 220);        //Set PWM2 to full speed
                 PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, true);     //Turn on PWM2 (lock)
                 unlock = 0;
                 lock = 1;
@@ -181,7 +183,7 @@ main(void)
             if((fwd1 == 0) && (fwd2 == 0))
             {
                 PWMOutputState(PWM1_BASE, PWM_OUT_5_BIT, true);
-                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 280);        //Keep motor at full speed
+                PWMPulseWidthSet(PWM1_BASE, PWM_OUT_5, 220);        //Keep motor at full speed
             }
             else if(fwd1 == 1)
             {
@@ -311,8 +313,8 @@ void printString(char * string)
 char readChar(void)
 {
     char c;
-    while((UART0_FR_R & (1<<4)) != 0);
-    c = UART0_DR_R;
+    while((UART1_FR_R & (1<<4)) != 0);
+    c = UART1_DR_R;
     return c;
 }
 
